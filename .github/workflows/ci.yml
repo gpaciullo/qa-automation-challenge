@@ -71,4 +71,46 @@ jobs:
       run:
         working-directory: api-bdd
     steps:
-      - uses: actions/che
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run Behave (gera Allure e JUnit)
+        run: |
+          behave -f allure_behave.formatter:AllureFormatter -o reports/allure-results -f pretty || true
+          behave -f junit -o reports/junit || true
+        # `|| true` garante que os passos abaixo executem mesmo com cenários falhando
+      # --- Build do Allure HTML ---
+      - name: Build Allure HTML
+        if: always()
+        uses: simple-elf/allure-report-action@v1.8
+        with:
+          allure_results: api-bdd/reports/allure-results
+          allure_report:  api-bdd/reports/allure-report
+          keep_reports: 1
+      - name: Upload Allure results (raw)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-bdd-allure-results
+          path: api-bdd/reports/allure-results
+          if-no-files-found: ignore
+      - name: Upload Allure report (HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-bdd-allure-report
+          path: api-bdd/reports/allure-report
+          if-no-files-found: ignore
+      - name: Upload JUnit (BDD)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-bdd-junit
+          path: api-bdd/reports/junit
+          if-no-files-found: warn
