@@ -1,4 +1,4 @@
-name: CI - QA Automation Challenge
+name: CI
 
 on:
   push:
@@ -7,41 +7,94 @@ on:
     branches: [ "main" ]
 
 jobs:
-  test:
+  api-tests:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: api-tests
     steps:
-      # 1. Checkout do código
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      # 2. Configurar Java (necessário para Maven e Allure)
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
-
-      # 3. Cache do Maven para agilizar builds
-      - name: Cache Maven packages
-        uses: actions/cache@v3
+          python-version: "3.11"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run pytest
+        run: pytest -q
+      - name: Upload JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          path: ~/.m2
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+          name: api-pytest-junit
+          path: api-tests/reports/pytest-junit.xml
+          if-no-files-found: warn
 
-      # 4. Instalar dependências e rodar testes (BDD + Allure)
-      - name: Run tests with Maven
-        run: mvn clean test
-
-      # 5. Gerar relatório Allure
-      - name: Generate Allure Report
-        run: mvn allure:report
-
-      # 6. Publicar relatório como artefato do GitHub Actions
-      - name: Upload Allure Report
-        uses: actions/upload-artifact@v3
+  frontend-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend-tests
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          name: allure-report
-          path: target/site/allure-maven-plugin
+          node-version: "18"
+      - name: Install deps
+        run: npm ci || npm i
+      - name: Run Cypress (headless)
+        uses: cypress-io/github-action@v6
+        with:
+          working-directory: frontend-tests
+          command: npx cypress run
+      - name: Upload Cypress videos
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-videos
+          path: frontend-tests/cypress/videos
+          if-no-files-found: ignore
+      - name: Upload Cypress screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-screenshots
+          path: frontend-tests/cypress/screenshots
+          if-no-files-found: ignore
+
+  api-bdd:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api-bdd
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run Behave with Allure + JUnit
+        run: |
+          behave -f allure_behave.formatter:AllureFormatter -o reports/allure-results -f pretty
+          behave -f junit -o reports/junit
+      - name: Upload JUnit (BDD)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-bdd-junit
+          path: api-bdd/reports/junit
+          if-no-files-found: warn
+      - name: Upload Allure results (BDD)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-bdd-allure-results
+          path: api-bdd/reports/allure-results
+          if-no-files-found: ignore
