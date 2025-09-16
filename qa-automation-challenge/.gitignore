@@ -1,0 +1,10 @@
+
+# Python
+__pycache__/
+.venv/
+.env
+
+# Cypress
+frontend-tests/node_modules/
+frontend-tests/cypress/videos/
+frontend-tests/cypress/screenshots/

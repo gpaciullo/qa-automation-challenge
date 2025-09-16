@@ -1,0 +1,8 @@
+
+behave==1.2.6
+requests==2.32.3
+python-dotenv==1.0.1
+# opcional: habilite Allure adicionando a linha abaixo
+# allure-behave==2.13.5
+
+allure-behave==2.13.5

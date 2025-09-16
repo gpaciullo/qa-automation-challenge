@@ -1,0 +1,5 @@
+pytest==8.3.2
+requests==2.32.3
+python-dotenv==1.0.1
+# opcional: habilite Allure adicionando a linha abaixo e rodando 'pip install -r requirements.txt'
+# allure-pytest==2.13.5
