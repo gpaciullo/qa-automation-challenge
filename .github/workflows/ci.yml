@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  api-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          cd api-tests
+          pip install -r requirements.txt
+      - name: Run API tests
+        run: |
+          cd api-tests
+          pytest --maxfail=1 --disable-warnings -q
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Install dependencies
+        run: |
+          cd frontend-tests
+          npm install
+      - name: Run Cypress tests
+        run: |
+          cd frontend-tests
+          npx cypress run
+
+  api-bdd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          cd api-bdd
+          pip install -r requirements.txt
+      - name: Run BDD tests
+        run: |
+          cd api-bdd
+          behave -f allure_behave.formatter:AllureFormatter -o reports/allure-results -f pretty
