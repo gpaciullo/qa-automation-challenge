@@ -1,13 +1,25 @@
 
-import os, uuid, random, string, pytest
-from src.client.api_client import DemoQAClient
-from src.config import BASE_URL, Credentials
-_DEF_PASSWORD = "Aa!" + "".join(random.choices(string.ascii_letters + string.digits, k=8))
-@pytest.fixture(scope="session")
-def creds() -> Credentials:
-    username = os.getenv("DEMOQA_USERNAME") or f"qa_{uuid.uuid4().hex[:10]}"
-    password = os.getenv("DEMOQA_PASSWORD") or _DEF_PASSWORD
+import secrets, string
+import pytest
+from src.models.credentials import Credentials  # ajuste o import conforme seu projeto
+
+def _strong_password(length: int = 12) -> str:
+    # garante 1 de cada categoria
+    chars = [
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.digits),
+        secrets.choice("!@#$%^&*()-_=+[]{}:;,.?/"),
+    ]
+    # completa o restante com um mix
+    pool = string.ascii_letters + string.digits + "!@#$%^&*()-_=+[]{}:;,.?/"
+    chars += [secrets.choice(pool) for _ in range(max(8, length) - len(chars))]
+    # embaralha para não ficar previsível
+    secrets.SystemRandom().shuffle(chars)
+    return "".join(chars)
+
+@pytest.fixture
+def creds():
+    username = f"qa_{secrets.token_hex(6)}"
+    password = _strong_password(12)   # <- agora sempre cumpre a política
     return Credentials(username=username, password=password)
-@pytest.fixture(scope="session")
-def client() -> DemoQAClient:
-    return DemoQAClient(BASE_URL)
