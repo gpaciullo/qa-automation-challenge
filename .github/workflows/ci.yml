@@ -134,14 +134,33 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      # ↓↓↓ BAIXA o artifact gerado no job api-bdd
+      # 1) Baixa o HTML novo gerado no job api-bdd
       - name: Download Allure HTML artifact
         uses: actions/download-artifact@v4
         with:
           name: api-bdd-allure-report
-          path: site  # qualquer pasta; precisa conter um index.html
+          path: site  # conteúdo do novo relatório
 
-      # Publica o conteúdo baixado no Pages
+      # 2) Faz checkout do site já publicado (branch gh-pages) para capturar a pasta history
+      - name: Checkout current gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: oldsite
+        continue-on-error: true  # primeira execução pode não ter gh-pages ainda
+
+      # 3) Se existir, copia a pasta history/ antiga para dentro do novo site
+      - name: Carry over Allure history
+        run: |
+          if [ -d "oldsite/history" ]; then
+            echo "Found previous history; copying into new site..."
+            mkdir -p site/history
+            cp -r oldsite/history/* site/history/ || true
+          else
+            echo "No previous history found. Skipping."
+          fi
+
+      # 4) Publica o conteúdo (com history preservado) no Pages
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
