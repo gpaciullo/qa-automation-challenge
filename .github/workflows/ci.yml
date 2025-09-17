@@ -131,14 +131,22 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
+
+      # ↓↓↓ BAIXA o artifact gerado no job api-bdd
+      - name: Download Allure HTML artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-bdd-allure-report
+          path: site  # qualquer pasta; precisa conter um index.html
+
+      # Publica o conteúdo baixado no Pages
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: api-bdd/reports/allure-report  # precisa ter um index.html
+          path: site
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
