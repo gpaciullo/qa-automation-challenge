@@ -1,6 +1,10 @@
 name: CI
 
 on:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
   push:
     branches: [ "main" ]
   pull_request:
@@ -131,3 +135,31 @@ jobs:
           name: api-bdd-junit
           path: api-bdd/reports/junit
           if-no-files-found: warn
+
+  deploy-allure:
+    name: Deploy Allure to GitHub Pages
+    needs: [api-bdd]
+    if: always()  # publica mesmo se testes falharem, desde que o relatório exista
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Allure HTML from previous job (se gerado como artifact, ignore)
+        if: false
+        uses: actions/download-artifact@v4
+        with:
+          name: api-bdd-allure-report
+          path: api-bdd/reports/allure-report
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: api-bdd/reports/allure-report  # precisa conter um index.html na raiz
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
