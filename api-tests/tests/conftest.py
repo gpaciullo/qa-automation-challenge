@@ -1,23 +1,13 @@
 
-import secrets, string
-import pytest
-from src.models.credentials import Credentials
-
-def _strong_password(length: int = 12) -> str:
-    # garante ao menos 1 de cada categoria
-    chars = [
-        secrets.choice(string.ascii_lowercase),
-        secrets.choice(string.ascii_uppercase),
-        secrets.choice(string.digits),
-        secrets.choice("!@#$%^&*()-_=+[]{}:;,.?/"),
-    ]
-    pool = string.ascii_letters + string.digits + "!@#$%^&*()-_=+[]{}:;,.?/"
-    chars += [secrets.choice(pool) for _ in range(length - len(chars))]
-    secrets.SystemRandom().shuffle(chars)
-    return "".join(chars)
-
-@pytest.fixture
-def creds():
-    username = f"qa_{secrets.token_hex(6)}"
-    password = _strong_password(12)   # sempre atende aos requisitos
+import os, uuid, random, string, pytest
+from src.client.api_client import DemoQAClient
+from src.config import BASE_URL, Credentials
+_DEF_PASSWORD = "Aa!" + "".join(random.choices(string.ascii_letters + string.digits, k=8))
+@pytest.fixture(scope="session")
+def creds() -> Credentials:
+    username = os.getenv("DEMOQA_USERNAME") or f"qa_{uuid.uuid4().hex[:10]}"
+    password = os.getenv("DEMOQA_PASSWORD") or _DEF_PASSWORD
     return Credentials(username=username, password=password)
+@pytest.fixture(scope="session")
+def client() -> DemoQAClient:
+    return DemoQAClient(BASE_URL)
